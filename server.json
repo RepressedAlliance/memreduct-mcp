@@ -23,6 +23,15 @@
           "isRequired": false
         }
       ]
+    },
+    {
+      "registryType": "mcpb",
+      "identifier": "https://github.com/RepressedAlliance/memreduct-mcp/releases/download/v0.1.0/memreduct-mcp.mcpb",
+      "version": "0.1.0",
+      "fileSha256": "3575966c245ee565e32c8ae629152d3dccaa2ecc2c1a345a64f6dc8af9196c28",
+      "transport": {
+        "type": "stdio"
+      }
     }
   ]
 }
