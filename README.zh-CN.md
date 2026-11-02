@@ -28,7 +28,7 @@ Mem Reduct 本来就以管理员身份常驻在托盘里。这个服务只是按
 ### Claude Code（插件，附带一份告诉 Claude 何时该清理的 Skill）
 
 ```
-/plugin marketplace add imnotsureyi-sys/memreduct-mcp
+/plugin marketplace add RepressedAlliance/memreduct-mcp
 /plugin install memreduct@memreduct-mcp
 ```
 
@@ -37,7 +37,7 @@ Mem Reduct 本来就以管理员身份常驻在托盘里。这个服务只是按
 克隆仓库即可。`dist/index.cjs` 是打包好的单文件，不需要 `npm install`。
 
 ```
-git clone https://github.com/imnotsureyi-sys/memreduct-mcp
+git clone https://github.com/RepressedAlliance/memreduct-mcp
 codex mcp add memreduct -- node C:\path\to\memreduct-mcp\dist\index.cjs
 ```
 

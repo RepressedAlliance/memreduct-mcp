@@ -30,7 +30,7 @@ This project does not include Mem Reduct. Mem Reduct is GPL-3.0 software by Henr
 ### Claude Code (plugin, includes a skill that tells Claude when to clean)
 
 ```
-/plugin marketplace add imnotsureyi-sys/memreduct-mcp
+/plugin marketplace add RepressedAlliance/memreduct-mcp
 /plugin install memreduct@memreduct-mcp
 ```
 
@@ -39,7 +39,7 @@ This project does not include Mem Reduct. Mem Reduct is GPL-3.0 software by Henr
 Clone the repository; `dist/index.cjs` is a self-contained bundle with no `npm install` needed.
 
 ```
-git clone https://github.com/imnotsureyi-sys/memreduct-mcp
+git clone https://github.com/RepressedAlliance/memreduct-mcp
 codex mcp add memreduct -- node C:\path\to\memreduct-mcp\dist\index.cjs
 ```
 

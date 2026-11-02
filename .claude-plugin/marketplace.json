@@ -1,6 +1,6 @@
 {
   "name": "memreduct-mcp",
-  "owner": { "name": "imnotsureyi-sys" },
+  "owner": { "name": "RepressedAlliance" },
   "description": "Free RAM on Windows from AI agents with the user's own Mem Reduct.",
   "plugins": [
     {

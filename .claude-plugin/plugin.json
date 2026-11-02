@@ -2,8 +2,8 @@
   "name": "memreduct",
   "version": "0.1.0",
   "description": "Let Claude free RAM with your own Mem Reduct before memory-hungry jobs, without admin prompts.",
-  "author": { "name": "imnotsureyi-sys" },
-  "homepage": "https://github.com/imnotsureyi-sys/memreduct-mcp",
+  "author": { "name": "RepressedAlliance" },
+  "homepage": "https://github.com/RepressedAlliance/memreduct-mcp",
   "license": "MIT",
   "keywords": ["windows", "memory", "ram", "mem-reduct"]
 }
