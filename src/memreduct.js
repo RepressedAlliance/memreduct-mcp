@@ -42,9 +42,15 @@ function iniCandidates(dir) {
   return list;
 }
 
+// Mem Reduct writes UTF-16LE: the ini with a BOM, the debug log without one.
+function decode(buf) {
+  if (buf[0] === 0xff && buf[1] === 0xfe) return buf.toString('utf16le').slice(1);
+  if (buf.length > 1 && buf[1] === 0) return buf.toString('utf16le');
+  return buf.toString('utf8');
+}
+
 function readIni(path) {
-  const buf = readFileSync(path);
-  const text = buf[0] === 0xff && buf[1] === 0xfe ? buf.toString('utf16le').slice(1) : buf.toString('utf8');
+  const text = decode(readFileSync(path));
   const values = {};
   let section = '';
   for (const raw of text.split(/\r?\n/)) {
@@ -68,6 +74,23 @@ export function decodeHotkey(value) {
   const key = vk >= 0x70 && vk <= 0x87 ? `F${vk - 0x6f}`
     : (vk >= 0x30 && vk <= 0x5a ? String.fromCharCode(vk) : `VK_0x${vk.toString(16)}`);
   return { vk, ctrl: !!(flags & HOTKEYF.CONTROL), alt: !!(flags & HOTKEYF.ALT), shift: !!(flags & HOTKEYF.SHIFT), label: [...names, key].join('+') };
+}
+
+/**
+ * Mem Reduct's own record of the latest clean, if "Log cleaning results into a
+ * debug log" (Settings > Advanced) is on. Lines look like:
+ * "Info","2/11/2026 2:58:20 PM","Cleanup (Hotkey)","0x00000000","7.72 GB","3.5.2",...
+ */
+function lastLoggedClean(iniPath) {
+  try {
+    const text = decode(readFileSync(join(iniPath, '..', 'memreduct_debug.log')));
+    const line = text.split(/\r?\n/).filter((l) => l.startsWith('"Info"') && l.includes('Cleanup (')).pop();
+    if (!line) return null;
+    const [, time, reason, , amount] = line.split('","').map((s) => s.replace(/^"|"$/g, ''));
+    return { time, reason, amount };
+  } catch {
+    return null;
+  }
 }
 
 async function isRunning() {
@@ -94,6 +117,8 @@ export async function setupStatus() {
     running,
     hotkeyEnabled,
     hotkey: hotkey.label,
+    // Optional: lets clean_memory also return the amount Mem Reduct itself reports
+    resultLogging: ini.LogCleanResults === 'true',
     lastCleanUnix: ini.StatisticLastReduct ? Number(ini.StatisticLastReduct) : null,
     problems,
   };
@@ -114,11 +139,27 @@ export async function triggerClean(timeoutMs = 15000) {
     "Add-Type -Namespace MemReductMcp -Name K -MemberDefinition '[System.Runtime.InteropServices.DllImport(\"user32.dll\")] public static extern void keybd_event(byte vk, byte scan, uint flags, System.UIntPtr extra);';"
     + `${press};${release}`);
   const before = status.lastCleanUnix;
+  const logBefore = status.resultLogging ? JSON.stringify(lastLoggedClean(status.iniPath)) : null;
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
     await new Promise((r) => setTimeout(r, 500));
     const now = readIni(status.iniPath).StatisticLastReduct;
-    if (now && Number(now) !== before) return { triggered: true, confirmed: true, hotkey: hk.label, lastCleanUnix: Number(now) };
+    if (now && Number(now) !== before) {
+      // Mem Reduct writes the log line after StatisticLastReduct, so wait briefly for it
+      let logged = null;
+      for (let i = 0; status.resultLogging && i < 12; i++) {
+        const entry = lastLoggedClean(status.iniPath);
+        if (entry && JSON.stringify(entry) !== logBefore) { logged = entry; break; }
+        await new Promise((r) => setTimeout(r, 250));
+      }
+      return {
+        triggered: true,
+        confirmed: true,
+        hotkey: hk.label,
+        lastCleanUnix: Number(now),
+        ...(logged && logged.reason === 'Cleanup (Hotkey)' ? { memreductReported: logged.amount } : {}),
+      };
+    }
   }
   return {
     triggered: true,

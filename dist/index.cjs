@@ -17079,9 +17079,13 @@ function iniCandidates(dir) {
   if (process.env.APPDATA) list.push((0, import_node_path.join)(process.env.APPDATA, "Henry++", "Mem Reduct", "memreduct.ini"));
   return list;
 }
+function decode3(buf) {
+  if (buf[0] === 255 && buf[1] === 254) return buf.toString("utf16le").slice(1);
+  if (buf.length > 1 && buf[1] === 0) return buf.toString("utf16le");
+  return buf.toString("utf8");
+}
 function readIni(path) {
-  const buf = (0, import_node_fs.readFileSync)(path);
-  const text = buf[0] === 255 && buf[1] === 254 ? buf.toString("utf16le").slice(1) : buf.toString("utf8");
+  const text = decode3((0, import_node_fs.readFileSync)(path));
   const values = {};
   let section = "";
   for (const raw of text.split(/\r?\n/)) {
@@ -17103,6 +17107,17 @@ function decodeHotkey(value) {
   if (flags & HOTKEYF.SHIFT) names.push("Shift");
   const key = vk >= 112 && vk <= 135 ? `F${vk - 111}` : vk >= 48 && vk <= 90 ? String.fromCharCode(vk) : `VK_0x${vk.toString(16)}`;
   return { vk, ctrl: !!(flags & HOTKEYF.CONTROL), alt: !!(flags & HOTKEYF.ALT), shift: !!(flags & HOTKEYF.SHIFT), label: [...names, key].join("+") };
+}
+function lastLoggedClean(iniPath) {
+  try {
+    const text = decode3((0, import_node_fs.readFileSync)((0, import_node_path.join)(iniPath, "..", "memreduct_debug.log")));
+    const line = text.split(/\r?\n/).filter((l) => l.startsWith('"Info"') && l.includes("Cleanup (")).pop();
+    if (!line) return null;
+    const [, time3, reason, , amount] = line.split('","').map((s) => s.replace(/^"|"$/g, ""));
+    return { time: time3, reason, amount };
+  } catch {
+    return null;
+  }
 }
 async function isRunning() {
   const out = await run("tasklist.exe", ["/FI", "IMAGENAME eq memreduct.exe", "/FO", "CSV", "/NH"]);
@@ -17126,6 +17141,8 @@ async function setupStatus() {
     running,
     hotkeyEnabled,
     hotkey: hotkey.label,
+    // Optional: lets clean_memory also return the amount Mem Reduct itself reports
+    resultLogging: ini.LogCleanResults === "true",
     lastCleanUnix: ini.StatisticLastReduct ? Number(ini.StatisticLastReduct) : null,
     problems
   };
@@ -17141,11 +17158,29 @@ async function triggerClean(timeoutMs = 15e3) {
     `Add-Type -Namespace MemReductMcp -Name K -MemberDefinition '[System.Runtime.InteropServices.DllImport("user32.dll")] public static extern void keybd_event(byte vk, byte scan, uint flags, System.UIntPtr extra);';${press};${release}`
   );
   const before = status.lastCleanUnix;
+  const logBefore = status.resultLogging ? JSON.stringify(lastLoggedClean(status.iniPath)) : null;
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
     await new Promise((r) => setTimeout(r, 500));
     const now = readIni(status.iniPath).StatisticLastReduct;
-    if (now && Number(now) !== before) return { triggered: true, confirmed: true, hotkey: hk.label, lastCleanUnix: Number(now) };
+    if (now && Number(now) !== before) {
+      let logged = null;
+      for (let i = 0; status.resultLogging && i < 12; i++) {
+        const entry = lastLoggedClean(status.iniPath);
+        if (entry && JSON.stringify(entry) !== logBefore) {
+          logged = entry;
+          break;
+        }
+        await new Promise((r) => setTimeout(r, 250));
+      }
+      return {
+        triggered: true,
+        confirmed: true,
+        hotkey: hk.label,
+        lastCleanUnix: Number(now),
+        ...logged && logged.reason === "Cleanup (Hotkey)" ? { memreductReported: logged.amount } : {}
+      };
+    }
   }
   return {
     triggered: true,
@@ -17226,6 +17261,7 @@ async function cleanMemory({ needed_mb: needed } = {}) {
     availableBeforeMB: before,
     availableAfterMB: after,
     freedMB: after - before,
+    ...result.memreductReported ? { memreductReported: result.memreductReported } : {},
     hotkey: result.hotkey,
     ...result.confirmed ? {} : { hint: result.hint },
     note: NOTE

@@ -65,6 +65,7 @@ async function cleanMemory({ needed_mb: needed } = {}) {
     availableBeforeMB: before,
     availableAfterMB: after,
     freedMB: after - before,
+    ...(result.memreductReported ? { memreductReported: result.memreductReported } : {}),
     hotkey: result.hotkey,
     ...(result.confirmed ? {} : { hint: result.hint }),
     note: NOTE,

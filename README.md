@@ -17,15 +17,16 @@ This project does not include Mem Reduct. Mem Reduct is GPL-3.0 software by Henr
 | Tool | What it does |
 |---|---|
 | `memory_status` | Total, available and committed RAM, plus the largest processes. Read-only. |
-| `clean_memory` | Triggers a Mem Reduct clean and returns available RAM before and after and `freedMB`. Optional `needed_mb` skips the clean when that much is already free. Has a cooldown (default 120 s, env `MEMREDUCT_MCP_COOLDOWN`). |
+| `clean_memory` | Triggers a Mem Reduct clean and returns available RAM before and after, `freedMB`, and Mem Reduct's own figure when its result log is on. Optional `needed_mb` skips the clean when that much is already free. Has a cooldown (default 120 s, env `MEMREDUCT_MCP_COOLDOWN`). |
 | `memreduct_setup_check` | Says whether Mem Reduct is installed, running and has the hotkey enabled, and what to fix if not. |
 
 ## Setup
 
 1. Install [Mem Reduct](https://github.com/henrypp/memreduct/releases), start it (it asks for administrator rights once) and keep it in the tray. Turning on *Load on system startup* keeps it there.
 2. In Mem Reduct **Settings > Hotkeys**, enable **Clean memory**. Pick a combination nothing else uses. The default Ctrl+F1 collides with Office's ribbon toggle, so Ctrl+Alt+Shift+F12 is a good choice. The server reads whatever you set.
-3. Optional: in Mem Reduct settings, turn off the clean-result tray notification if you don't want a balloon after each clean.
-4. Requires Node.js 18 or later.
+3. Recommended: in Mem Reduct **Settings > Advanced**, enable **Log cleaning results into a debug log**. `clean_memory` then also returns the amount Mem Reduct itself reports (`memreductReported`), so you don't have to trust the server's own measurement.
+4. Optional: turn off the clean-result tray notification if you don't want a balloon after each clean.
+5. Requires Node.js 18 or later.
 
 ### Claude Code (plugin, includes a skill that tells Claude when to clean)
 
@@ -47,7 +48,7 @@ For Claude Desktop, Cursor and others, add a stdio server with command `node` an
 
 ## Is cleaning RAM actually useful?
 
-Only at the right moment. Cleaning trims every program's working set and drops the standby cache, so available RAM jumps. On a test laptop with 16 GB it went up by 1.1 to 4.2 GB. Programs read those pages back from disk when they touch them again, so cleaning does not make a PC faster in general. It helps when a memory-hungry job is about to start and won't fit. The tool's cooldown and the bundled skill steer agents toward that use and away from cleaning on a schedule.
+Only at the right moment. Cleaning trims every program's working set and drops the standby cache, so available RAM jumps. How much depends on how much idle memory programs are holding. On a 16 GB test laptop, a process holding 6 GB of idle memory brought available RAM down to 3.6 GB; one `clean_memory` call brought it back to 10.9 GB (Mem Reduct's log: "Cleanup (Hotkey), 7.72 GB"). Right after a previous clean, with 10 GB already free, the same call freed under 1 GB. Programs read those pages back from disk when they touch them again, so cleaning does not make a PC faster in general. It helps when a memory-hungry job is about to start and won't fit. The tool's cooldown and the bundled skill steer agents toward that use and away from cleaning on a schedule.
 
 ## Limits
 

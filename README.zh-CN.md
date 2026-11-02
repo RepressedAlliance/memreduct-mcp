@@ -15,15 +15,16 @@ Mem Reduct 本来就以管理员身份常驻在托盘里。这个服务只是按
 | 工具 | 作用 |
 |---|---|
 | `memory_status` | 总内存、可用内存、提交量，以及占用最多的进程。只读。 |
-| `clean_memory` | 触发 Mem Reduct 清理，返回清理前后的可用内存和 `freedMB`。传 `needed_mb` 时，内存已经够用就跳过清理。有冷却时间（默认 120 秒，环境变量 `MEMREDUCT_MCP_COOLDOWN`）。 |
+| `clean_memory` | 触发 Mem Reduct 清理，返回清理前后的可用内存和 `freedMB`；Mem Reduct 开了结果日志时，再附上它自己报告的清理量。传 `needed_mb` 时，内存已经够用就跳过清理。有冷却时间（默认 120 秒，环境变量 `MEMREDUCT_MCP_COOLDOWN`）。 |
 | `memreduct_setup_check` | 检查 Mem Reduct 是否安装、是否在运行、快捷键是否已开启；没准备好时告诉用户怎么改。 |
 
 ## 安装
 
 1. 安装并启动 [Mem Reduct](https://github.com/henrypp/memreduct/releases)（第一次会请求管理员权限），让它常驻托盘。建议打开它的“开机启动”。
 2. 在 Mem Reduct 的 **设置 > 快捷键** 里启用 **清理内存**，挑一个不和别的软件冲突的组合。默认的 Ctrl+F1 和 Office 的“折叠功能区”冲突，推荐 Ctrl+Alt+Shift+F12。服务会自动读取你设置的组合。
-3. 可选：在 Mem Reduct 设置里关掉清理结果的托盘提示。
-4. 需要 Node.js 18 或更高版本。
+3. 建议：在 Mem Reduct 的 **设置 > 高级** 里勾选 **Log cleaning results into a debug log**。这样 `clean_memory` 还会返回 Mem Reduct 自己报告的清理量（`memreductReported`），不用只信本工具的测量。
+4. 可选：关掉清理结果的托盘提示。
+5. 需要 Node.js 18 或更高版本。
 
 ### Claude Code（插件，附带一份告诉 Claude 何时该清理的 Skill）
 
@@ -45,7 +46,7 @@ Claude Desktop、Cursor 等：添加一个 stdio 服务，命令填 `node`，参
 
 ## 清内存真的有用吗？
 
-只在合适的时机有用。清理会削减所有程序的工作集、丢掉备用缓存，所以可用内存会马上变多：在一台 16 GB 的测试笔记本上，每次多出 1.1–4.2 GB。但程序再用到那些页面时，还会从磁盘读回来，所以它不会让电脑整体变快。它真正有用的场景，是马上要开始一个内存吃紧、本来装不下的任务。工具的冷却时间和附带的 Skill，都是为了引导 Agent 只在这种时候清理，不要定时清理。
+只在合适的时机有用。清理会削减所有程序的工作集、丢掉备用缓存，所以可用内存会马上变多，具体多出多少，取决于各程序占着多少暂时不用的内存。在一台 16 GB 的测试笔记本上，让一个进程占着 6 GB 不动，可用内存降到 3.6 GB；调用一次 `clean_memory` 后回到 10.9 GB（Mem Reduct 日志记录：“Cleanup (Hotkey)，7.72 GB”）。如果刚清理过、又已经有 10 GB 空闲，同样的调用只能腾出不到 1 GB。但程序再用到那些页面时，还会从磁盘读回来，所以它不会让电脑整体变快。它真正有用的场景，是马上要开始一个内存吃紧、本来装不下的任务。工具的冷却时间和附带的 Skill，都是为了引导 Agent 只在这种时候清理，不要定时清理。
 
 ## 限制
 
