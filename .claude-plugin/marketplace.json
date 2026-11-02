@@ -1,0 +1,12 @@
+{
+  "name": "memreduct-mcp",
+  "owner": { "name": "imnotsureyi-sys" },
+  "description": "Free RAM on Windows from AI agents with the user's own Mem Reduct.",
+  "plugins": [
+    {
+      "name": "memreduct",
+      "source": "./",
+      "description": "Let Claude free RAM with your own Mem Reduct before memory-hungry jobs, without admin prompts."
+    }
+  ]
+}
