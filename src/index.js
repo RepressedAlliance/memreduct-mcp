@@ -13,7 +13,9 @@ const VERSION = '0.1.0';
 const STATE = join(tmpdir(), 'memreduct-mcp-state.json');
 // Cleaning trims every process's working set; pages come back from disk when used,
 // so repeated cleans cost performance. Agents get a cooldown, not a turbo button.
-const COOLDOWN_SECONDS = Number(process.env.MEMREDUCT_MCP_COOLDOWN ?? 120);
+// A client that leaves a config placeholder unexpanded must not switch the cooldown off.
+const envCooldown = Number(process.env.MEMREDUCT_MCP_COOLDOWN);
+const COOLDOWN_SECONDS = process.env.MEMREDUCT_MCP_COOLDOWN && envCooldown >= 0 ? envCooldown : 120;
 
 const NOTE = 'Cleaning frees physical RAM for a while (working sets, standby and modified lists). '
   + 'Programs read trimmed pages back when they use them, so it does not make the PC faster in general. '

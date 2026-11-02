@@ -1,0 +1,12 @@
+# The extension only needs the manifest, the bundled server, the icon and the docs.
+.claude-plugin/*.json
+.git/
+node_modules/
+skills/
+src/
+test/
+CLAUDE.md
+CHANGELOG.md
+server.json
+package-lock.json
+*.mcpb

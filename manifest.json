@@ -1,0 +1,52 @@
+{
+  "manifest_version": "0.3",
+  "name": "memreduct-mcp",
+  "display_name": "Mem Reduct",
+  "version": "0.1.0",
+  "description": "Free RAM on Windows with your own Mem Reduct before memory-hungry jobs, without admin prompts.",
+  "long_description": "Presses the clean memory hotkey of the Mem Reduct already running in your tray, waits until Mem Reduct records the clean, and reports available RAM before and after. Needs [Mem Reduct](https://github.com/henrypp/memreduct) running with its **Clean memory** hotkey enabled; `memreduct_setup_check` says what to fix. Cleaning helps right before a job that would not fit in RAM; it does not make a PC faster in general.",
+  "author": {
+    "name": "RepressedAlliance",
+    "url": "https://github.com/RepressedAlliance"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/RepressedAlliance/memreduct-mcp.git"
+  },
+  "homepage": "https://github.com/RepressedAlliance/memreduct-mcp",
+  "support": "https://github.com/RepressedAlliance/memreduct-mcp/issues",
+  "icon": ".claude-plugin/icon.png",
+  "server": {
+    "type": "node",
+    "entry_point": "dist/index.cjs",
+    "mcp_config": {
+      "command": "node",
+      "args": ["${__dirname}/dist/index.cjs"],
+      "env": {
+        "MEMREDUCT_MCP_COOLDOWN": "${user_config.cooldown_seconds}"
+      }
+    }
+  },
+  "tools": [
+    { "name": "memory_status", "description": "Report total, available and committed RAM and the processes using the most memory." },
+    { "name": "clean_memory", "description": "Free RAM with Mem Reduct and return available RAM before and after." },
+    { "name": "memreduct_setup_check", "description": "Check that Mem Reduct is installed, running and has its clean hotkey enabled." }
+  ],
+  "user_config": {
+    "cooldown_seconds": {
+      "type": "number",
+      "title": "Cooldown (seconds)",
+      "description": "Minimum time between two cleans.",
+      "default": 120,
+      "min": 0,
+      "max": 3600,
+      "required": false
+    }
+  },
+  "keywords": ["windows", "memory", "ram", "memreduct"],
+  "license": "MIT",
+  "compatibility": {
+    "platforms": ["win32"],
+    "runtimes": { "node": ">=18.0.0" }
+  }
+}

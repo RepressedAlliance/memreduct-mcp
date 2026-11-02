@@ -17213,7 +17213,8 @@ async function availableMB() {
 // src/index.js
 var VERSION = "0.1.0";
 var STATE2 = (0, import_node_path2.join)((0, import_node_os.tmpdir)(), "memreduct-mcp-state.json");
-var COOLDOWN_SECONDS = Number(process.env.MEMREDUCT_MCP_COOLDOWN ?? 120);
+var envCooldown = Number(process.env.MEMREDUCT_MCP_COOLDOWN);
+var COOLDOWN_SECONDS = process.env.MEMREDUCT_MCP_COOLDOWN && envCooldown >= 0 ? envCooldown : 120;
 var NOTE = "Cleaning frees physical RAM for a while (working sets, standby and modified lists). Programs read trimmed pages back when they use them, so it does not make the PC faster in general. Use it right before a memory-hungry task, not as routine maintenance.";
 var tools = [
   {
