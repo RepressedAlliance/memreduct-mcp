@@ -1,0 +1,28 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.RepressedAlliance/memreduct-mcp",
+  "title": "Mem Reduct",
+  "description": "Free RAM on Windows with the user's own Mem Reduct via its clean hotkey, without admin prompts.",
+  "repository": {
+    "url": "https://github.com/RepressedAlliance/memreduct-mcp",
+    "source": "github"
+  },
+  "version": "0.1.0",
+  "packages": [
+    {
+      "registryType": "npm",
+      "identifier": "memreduct-mcp",
+      "version": "0.1.0",
+      "transport": {
+        "type": "stdio"
+      },
+      "environmentVariables": [
+        {
+          "name": "MEMREDUCT_MCP_COOLDOWN",
+          "description": "Minimum seconds between two cleans (default 120).",
+          "isRequired": false
+        }
+      ]
+    }
+  ]
+}
