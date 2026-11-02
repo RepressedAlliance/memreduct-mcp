@@ -35,16 +35,31 @@ This project does not include Mem Reduct. Mem Reduct is GPL-3.0 software by Henr
 /plugin install memreduct@memreduct-mcp
 ```
 
-### Other MCP clients
+### Codex, Cursor and other MCP clients
 
-Clone the repository; `dist/index.cjs` is a self-contained bundle with no `npm install` needed.
+The server is on npm as `memreduct-mcp`:
 
 ```
-git clone https://github.com/RepressedAlliance/memreduct-mcp
-codex mcp add memreduct -- node C:\path\to\memreduct-mcp\dist\index.cjs
+codex mcp add memreduct -- npx -y memreduct-mcp
 ```
 
-For Claude Desktop, Cursor and others, add a stdio server with command `node` and argument `C:\path\to\memreduct-mcp\dist\index.cjs`.
+In clients configured with JSON (Cursor, Windsurf, Claude Desktop and others), add:
+
+```json
+{
+  "mcpServers": {
+    "memreduct": { "command": "npx", "args": ["-y", "memreduct-mcp"] }
+  }
+}
+```
+
+### Claude Desktop extension
+
+Download `memreduct-mcp.mcpb` from [Releases](https://github.com/RepressedAlliance/memreduct-mcp/releases) and open it, or drag it onto Claude Desktop's **Settings > Extensions** page. The cooldown can be changed in the extension's settings.
+
+### Without npm
+
+Clone the repository; `dist/index.cjs` is a self-contained bundle with no `npm install` needed. Use command `node` with argument `C:\path\to\memreduct-mcp\dist\index.cjs`.
 
 ## Is cleaning RAM actually useful?
 
@@ -62,6 +77,7 @@ Only at the right moment. Cleaning trims every program's working set and drops t
 npm install
 npm run build   # bundles src/ into dist/index.cjs
 npm test        # end-to-end: starts the server and really cleans memory
+npm run pack:mcpb  # builds memreduct-mcp.mcpb for Claude Desktop
 ```
 
 ## License

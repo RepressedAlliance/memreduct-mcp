@@ -33,16 +33,31 @@ Mem Reduct 本来就以管理员身份常驻在托盘里。这个服务只是按
 /plugin install memreduct@memreduct-mcp
 ```
 
-### 其他 MCP 客户端
+### Codex、Cursor 等 MCP 客户端
 
-克隆仓库即可。`dist/index.cjs` 是打包好的单文件，不需要 `npm install`。
+服务已发布到 npm，包名 `memreduct-mcp`：
 
 ```
-git clone https://github.com/RepressedAlliance/memreduct-mcp
-codex mcp add memreduct -- node C:\path\to\memreduct-mcp\dist\index.cjs
+codex mcp add memreduct -- npx -y memreduct-mcp
 ```
 
-Claude Desktop、Cursor 等：添加一个 stdio 服务，命令填 `node`，参数填 `C:\path\to\memreduct-mcp\dist\index.cjs`。
+用 JSON 配置的客户端（Cursor、Windsurf、Claude Desktop 等）加上：
+
+```json
+{
+  "mcpServers": {
+    "memreduct": { "command": "npx", "args": ["-y", "memreduct-mcp"] }
+  }
+}
+```
+
+### Claude Desktop 扩展
+
+从 [Releases](https://github.com/RepressedAlliance/memreduct-mcp/releases) 下载 `memreduct-mcp.mcpb`，双击打开，或拖到 Claude Desktop 的 **设置 > 扩展** 页面。冷却时间可以在扩展设置里改。
+
+### 不用 npm
+
+克隆仓库即可。`dist/index.cjs` 是打包好的单文件，不需要 `npm install`。命令填 `node`，参数填 `C:\path\to\memreduct-mcp\dist\index.cjs`。
 
 ## 清内存真的有用吗？
 
@@ -60,6 +75,7 @@ Claude Desktop、Cursor 等：添加一个 stdio 服务，命令填 `node`，参
 npm install
 npm run build   # 把 src/ 打包成 dist/index.cjs
 npm test        # 端到端测试：启动服务并真正清理一次内存
+npm run pack:mcpb  # 生成给 Claude Desktop 用的 memreduct-mcp.mcpb
 ```
 
 ## 许可证
