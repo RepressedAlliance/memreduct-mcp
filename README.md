@@ -4,6 +4,12 @@ Let AI agents (Claude Code, Codex, Cursor, Claude Desktop…) free RAM on Window
 
 [中文说明](README.zh-CN.md)
 
+## Why
+
+AI agents on Windows run long jobs on their own: builds, model inference, renders, many sessions and MCP servers side by side. Memory fills up along the way, and an agent has no way to give it back: idle sessions keep their pages resident, and trimming other programs' memory needs administrator rights the agent doesn't have. Mem Reduct can do it, but only when a person clicks it.
+
+memreduct-mcp closes that gap. The agent checks memory itself and, when a job is about to run out, has the Mem Reduct you already run clean it, then reads back how much came free.
+
 ## How it works
 
 Mem Reduct already runs elevated in your tray. This server presses Mem Reduct's **clean memory hotkey**. Windows delivers registered hotkeys to the elevated Mem Reduct even from an unelevated agent, so no UAC prompt, scheduled task or admin service is involved. The server then waits until Mem Reduct records the clean (`StatisticLastReduct` in its ini) and measures available RAM before and after.
@@ -63,7 +69,11 @@ Clone the repository; `dist/index.cjs` is a self-contained bundle with no `npm i
 
 ## Is cleaning RAM actually useful?
 
-Only at the right moment. Cleaning trims every program's working set and drops the standby cache, so available RAM jumps. How much depends on how much idle memory programs are holding. On a 16 GB test laptop, a process holding 6 GB of idle memory brought available RAM down to 3.6 GB; one `clean_memory` call brought it back to 10.9 GB (Mem Reduct's log: "Cleanup (Hotkey), 7.72 GB"). Right after a previous clean, with 10 GB already free, the same call freed under 1 GB. Programs read those pages back from disk when they touch them again, so cleaning does not make a PC faster in general. It helps when a memory-hungry job is about to start and won't fit. The tool's cooldown and the bundled skill steer agents toward that use and away from cleaning on a schedule.
+Only at the right moment. Cleaning trims every program's working set and drops the standby cache, so available RAM jumps. How much depends on how much idle memory programs are holding. On a 16 GB test laptop, a process holding 6 GB of idle memory brought available RAM down to 3.6 GB; one `clean_memory` call brought it back to 10.9 GB (Mem Reduct's log: "Cleanup (Hotkey), 7.72 GB"). Right after a previous clean, with 10 GB already free, the same call freed under 1 GB.
+
+Idle agent sessions are where it holds up best. With 8 long-lived Claude Code sessions (40 processes with their MCP servers) left idle after some work, one clean took their working set from 2.81 GB to 0.42 GB, and five minutes later they were at 1.02 GB. Their commit charge stayed at about 4 GB: cleaning frees physical RAM, it does not end processes or lower the commit charge.
+
+Programs read those pages back from disk when they touch them again, so cleaning does not make a PC faster in general. It helps when a memory-hungry job is about to start and won't fit. The tool's cooldown and the bundled skill steer agents toward that use and away from cleaning on a schedule.
 
 ## Limits
 
