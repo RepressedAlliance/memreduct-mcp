@@ -2,7 +2,7 @@
   "manifest_version": "0.3",
   "name": "memreduct-mcp",
   "display_name": "Mem Reduct",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Free RAM on Windows with your own Mem Reduct before memory-hungry jobs, without admin prompts.",
   "long_description": "Presses the clean memory hotkey of the Mem Reduct already running in your tray, waits until Mem Reduct records the clean, and reports available RAM before and after. Needs [Mem Reduct](https://github.com/henrypp/memreduct) running with its **Clean memory** hotkey enabled; `memreduct_setup_check` says what to fix. Cleaning helps right before a job that would not fit in RAM; it does not make a PC faster in general.",
   "author": {

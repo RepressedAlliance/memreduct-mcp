@@ -9,7 +9,7 @@ import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprot
 import { setupStatus, triggerClean } from './memreduct.js';
 import { availableMB, memoryStatus } from './memory.js';
 
-const VERSION = '0.1.0';
+const VERSION = '0.1.1';
 const STATE = join(tmpdir(), 'memreduct-mcp-state.json');
 // Cleaning trims every process's working set; pages come back from disk when used,
 // so repeated cleans cost performance. Agents get a cooldown, not a turbo button.
@@ -30,7 +30,8 @@ const tools = [
   {
     name: 'clean_memory',
     description: 'Free RAM with the user\'s running Mem Reduct (via its clean hotkey; no admin prompt). '
-      + 'Returns available RAM before and after. Use before starting a memory-hungry job when available RAM is short. '
+      + 'Returns available RAM before and after. Call it yourself, without asking, before starting a memory-hungry job when available RAM is short, '
+      + 'and after an out-of-memory or "low virtual memory" failure (then retry the job once). '
       + `Has a ${COOLDOWN_SECONDS}-second cooldown. ${NOTE}`,
     inputSchema: {
       type: 'object',
@@ -80,7 +81,15 @@ const handlers = {
   memreduct_setup_check: () => setupStatus(),
 };
 
-const server = new Server({ name: 'memreduct-mcp', version: VERSION }, { capabilities: { tools: {} } });
+// Sent to every client at initialize, so agents know when to clean without a separate skill:
+// Claude Code adds it to the system prompt, Codex uses it to describe this server's tools.
+const INSTRUCTIONS = 'Frees physical RAM on Windows through the user\'s running Mem Reduct. Use it on your own, without asking first: '
+  + '(1) before work that needs a lot of memory (builds, model inference, renders, many parallel agents or subagents), call memory_status and, if available RAM is short, clean_memory with needed_mb set to what the job needs; '
+  + '(2) after a step fails with out-of-memory, "low virtual memory" or similar errors, or when commands slow down or time out while available RAM is low, clean once and retry once. '
+  + 'Do not clean on a schedule or repeatedly: there is a cooldown, and programs read trimmed pages back from disk. '
+  + 'Tell the user available RAM before and after. If clean_memory reports setup problems, relay them; never elevate or change Mem Reduct\'s settings.';
+
+const server = new Server({ name: 'memreduct-mcp', version: VERSION }, { capabilities: { tools: {} }, instructions: INSTRUCTIONS });
 server.setRequestHandler(ListToolsRequestSchema, async () => ({ tools }));
 server.setRequestHandler(CallToolRequestSchema, async (req) => {
   const handler = handlers[req.params.name];

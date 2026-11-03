@@ -13,8 +13,10 @@ The `memreduct` MCP server exposes three tools:
 
 ## When to clean
 
+Do this on your own; the user does not need to ask or approve each clean.
+
 1. Before starting something that needs more RAM than is available, call `memory_status`, then `clean_memory` with `needed_mb` set to the job's needs.
-2. After an out-of-memory failure, clean once and retry the job once.
+2. After an out-of-memory or "low virtual memory" failure, or when commands slow down or time out while available RAM is low, clean once and retry the job once.
 
 Do not clean on a schedule or "just in case". Cleaning trims every program's working set and drops cached file data, and programs read those pages back from disk when they need them, so frequent cleaning makes the PC slower, not faster. The tool enforces a cooldown for this reason.
 
