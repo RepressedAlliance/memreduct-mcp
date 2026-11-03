@@ -1,10 +1,11 @@
 # Changelog
 
-## 0.1.1 (unreleased)
+## 0.1.1 (2026-11-03)
 
 - The server now tells every client when to clean (MCP `instructions`), so agents in Codex, Cursor and other clients use it on their own, not only Claude Code with the bundled skill. Claude Code adds it to the system prompt; Codex shows it as the description of the server's tools.
 - `clean_memory`'s description and the skill say to clean without asking first, and also after commands slow down or time out while RAM is low.
 - An empty, negative or non-numeric `MEMREDUCT_MCP_COOLDOWN` (such as an unexpanded config placeholder) falls back to 120 s instead of turning the cooldown off.
+- New `tools/agent-ram-monitor` (in the repository, not the npm package): records agents' memory use and every Mem Reduct clean on your PC, to see what cleaning gives back in real use.
 
 ## 0.1.0 (2026-11-02)
 
