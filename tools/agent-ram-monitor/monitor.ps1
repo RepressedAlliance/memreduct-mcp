@@ -191,7 +191,15 @@ $cleanLineCount = (Get-CleanLines).Count
 $errorCount = 0
 Append-Record 'monitor' @{ event = 'start'; version = $Version; pid = $PID; sampleSeconds = $SampleSeconds }
 
+$stopRequest = Join-Path $DataDir 'stop-request'
 while ($true) {
+  # Uninstall-Monitor.ps1 and tests ask the monitor to exit this way, since the process a
+  # scheduled task starts can't always be ended from another program's context.
+  if (Test-Path -LiteralPath $stopRequest) {
+    Remove-Item -LiteralPath $stopRequest -ErrorAction SilentlyContinue
+    Append-Record 'monitor' @{ event = 'stop-request' }
+    break
+  }
   try {
     $now = Get-Date
     # A long gap between polls means the PC slept or hibernated; record it so reports

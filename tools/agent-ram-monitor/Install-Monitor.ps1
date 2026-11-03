@@ -29,11 +29,16 @@ Register-ScheduledTask -TaskName $taskName -Action $action -Trigger $atLogon, $w
   -Description 'memreduct-mcp: records AI agent memory use and Mem Reduct cleans (memory figures only). See tools/agent-ram-monitor/README.md.' -Force | Out-Null
 # Hand over to the task: stop a copy started some other way, so the running monitor is the
 # one the task watches (and runs outside any app's package).
-$hb = Join-Path $env:USERPROFILE '.memreduct-mcp\monitor\heartbeat.json'
+$dataDir = Join-Path $env:USERPROFILE '.memreduct-mcp\monitor'
+$hb = Join-Path $dataDir 'heartbeat.json'
 if (Test-Path -LiteralPath $hb) {
   $old = (Get-Content -LiteralPath $hb -Raw | ConvertFrom-Json).pid
-  Get-Process -Id $old -ErrorAction SilentlyContinue | Where-Object { $_.ProcessName -in 'powershell', 'pwsh' } | Stop-Process
-  Start-Sleep -Seconds 2
+  if (Get-Process -Id $old -ErrorAction SilentlyContinue | Where-Object { $_.ProcessName -in 'powershell', 'pwsh' }) {
+    New-Item -ItemType File -Force -Path (Join-Path $dataDir 'stop-request') | Out-Null
+    Start-Sleep -Seconds 8
+    Get-Process -Id $old -ErrorAction SilentlyContinue | Where-Object { $_.ProcessName -in 'powershell', 'pwsh' } | Stop-Process -ErrorAction SilentlyContinue
+    Remove-Item -LiteralPath (Join-Path $dataDir 'stop-request') -ErrorAction SilentlyContinue
+  }
 }
 Start-ScheduledTask -TaskName $taskName
 Start-Sleep -Seconds 5
