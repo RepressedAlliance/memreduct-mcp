@@ -47,7 +47,7 @@ Mem Reduct 本来就以管理员身份常驻在托盘里。这个服务只是按
 codex mcp add memreduct -- npx -y memreduct-mcp
 ```
 
-只装 MCP 服务，Codex 有了工具，却不知道什么时候该清理。再把 [`skills/memreduct/SKILL.md`](skills/memreduct/SKILL.md) 复制到 `%USERPROFILE%\.codex\skills\memreduct\SKILL.md`，新开的 Codex 会话就会用上。
+服务本身会告诉 Codex 什么时候该清理。想要 Claude Code 那份更详细的说明，可以再把 [`skills/memreduct/SKILL.md`](skills/memreduct/SKILL.md) 复制到 `%USERPROFILE%\.codex\skills\memreduct\SKILL.md`（可选，新开的 Codex 会话会用上）。
 
 用 JSON 配置的客户端（Cursor、Windsurf、Claude Desktop 等）加上：
 
