@@ -10,3 +10,4 @@ CHANGELOG.md
 server.json
 package-lock.json
 *.mcpb
+tools/
