@@ -49,6 +49,8 @@ The server is on npm as `memreduct-mcp`:
 codex mcp add memreduct -- npx -y memreduct-mcp
 ```
 
+The MCP server alone gives Codex the tools but not the guidance on when to clean. Also copy [`skills/memreduct/SKILL.md`](skills/memreduct/SKILL.md) to `%USERPROFILE%\.codex\skills\memreduct\SKILL.md`; new Codex sessions pick it up.
+
 In clients configured with JSON (Cursor, Windsurf, Claude Desktop and others), add:
 
 ```json
