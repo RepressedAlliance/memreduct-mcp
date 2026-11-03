@@ -7,12 +7,12 @@
     "url": "https://github.com/RepressedAlliance/memreduct-mcp",
     "source": "github"
   },
-  "version": "0.1.0",
+  "version": "0.1.1",
   "packages": [
     {
       "registryType": "npm",
       "identifier": "memreduct-mcp",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "transport": {
         "type": "stdio"
       },
@@ -26,9 +26,9 @@
     },
     {
       "registryType": "mcpb",
-      "identifier": "https://github.com/RepressedAlliance/memreduct-mcp/releases/download/v0.1.0/memreduct-mcp.mcpb",
-      "version": "0.1.0",
-      "fileSha256": "3575966c245ee565e32c8ae629152d3dccaa2ecc2c1a345a64f6dc8af9196c28",
+      "identifier": "https://github.com/RepressedAlliance/memreduct-mcp/releases/download/v0.1.1/memreduct-mcp.mcpb",
+      "version": "0.1.1",
+      "fileSha256": "27b34614e559d7e8f35e6490c046ea299463b36482e58eff87d6afa125a28fd3",
       "transport": {
         "type": "stdio"
       }
