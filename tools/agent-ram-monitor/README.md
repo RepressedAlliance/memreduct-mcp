@@ -16,12 +16,12 @@ For every Mem Reduct clean (detected within 3 seconds from Mem Reduct's result l
 - Mem Reduct's reported amount, and the readings just before (at least 10 seconds before Mem Reduct logged the clean, since a clean takes a few seconds) and right after;
 - the same readings again 2, 5 and 15 minutes later, to show how much of the freed memory stays free.
 
-It records no command lines, window titles, file paths or conversation content. Data stays in `%LOCALAPPDATA%\memreduct-mcp\monitor` as daily JSON Lines files (about 0.5 MB a day).
+It records no command lines, window titles, file paths or conversation content. Data stays in `%USERPROFILE%\.memreduct-mcp\monitor` as daily JSON Lines files (about 0.5 MB a day).
 
 ## Install
 
 ```powershell
-pwsh -File tools\agent-ram-monitor\Install-Monitor.ps1
+powershell -ExecutionPolicy Bypass -File tools\agent-ram-monitor\Install-Monitor.ps1
 ```
 
 This registers a scheduled task for the current user (no administrator rights): it starts the monitor at logon and every 5 minutes starts it again if it has stopped; the monitor itself allows only one copy. It runs through `conhost --headless`, so no window appears. Sleep and hibernation leave gaps, which the data marks.
@@ -29,7 +29,7 @@ This registers a scheduled task for the current user (no administrator rights): 
 ## Check and report
 
 ```powershell
-pwsh -File tools\agent-ram-monitor\status.ps1     # running? last sample, coverage, cleans, errors
+powershell -ExecutionPolicy Bypass -File tools\agent-ram-monitor\status.ps1     # running? last sample, coverage, cleans, errors
 node tools\agent-ram-monitor\report.mjs           # summary, plus report.html with a timeline
 ```
 
@@ -38,7 +38,7 @@ The report lists every clean, including the ones that freed little, and medians 
 ## Remove
 
 ```powershell
-pwsh -File tools\agent-ram-monitor\Uninstall-Monitor.ps1
+powershell -ExecutionPolicy Bypass -File tools\agent-ram-monitor\Uninstall-Monitor.ps1
 ```
 
 The recorded data is kept; delete the folder above if you no longer want it.

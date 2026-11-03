@@ -1,7 +1,7 @@
 # Is the monitor healthy? Prints whether it runs, when it last sampled, coverage over the
 # last 24 hours, cleans recorded and any errors. Exit code 0 = healthy, 1 = needs attention.
 # Works in Windows PowerShell 5.1 and PowerShell 7.
-param([string]$DataDir = (Join-Path $env:LOCALAPPDATA 'memreduct-mcp\monitor'))
+param([string]$DataDir = (Join-Path $env:USERPROFILE '.memreduct-mcp\monitor'))
 $ErrorActionPreference = 'Stop'
 $problems = New-Object System.Collections.Generic.List[string]
 

@@ -1,7 +1,7 @@
 # Installs the agent RAM monitor for the current user, without administrator rights:
 # a scheduled task that starts monitor.ps1 at logon and, every 5 minutes, starts it again
 # if it is not running (the monitor allows only one copy of itself). Then starts it now.
-# Remove with Uninstall-Monitor.ps1; recorded data stays in %LOCALAPPDATA%\memreduct-mcp\monitor.
+# Remove with Uninstall-Monitor.ps1; recorded data stays in %USERPROFILE%\.memreduct-mcp\monitor.
 param(
   [string]$OtherToolStateFile = '',
   [string]$OtherToolName = 'other tool'
@@ -27,6 +27,14 @@ $principal = New-ScheduledTaskPrincipal -UserId $user -LogonType Interactive -Ru
 
 Register-ScheduledTask -TaskName $taskName -Action $action -Trigger $atLogon, $watchdog -Settings $settings -Principal $principal `
   -Description 'memreduct-mcp: records AI agent memory use and Mem Reduct cleans (memory figures only). See tools/agent-ram-monitor/README.md.' -Force | Out-Null
+# Hand over to the task: stop a copy started some other way, so the running monitor is the
+# one the task watches (and runs outside any app's package).
+$hb = Join-Path $env:USERPROFILE '.memreduct-mcp\monitor\heartbeat.json'
+if (Test-Path -LiteralPath $hb) {
+  $old = (Get-Content -LiteralPath $hb -Raw | ConvertFrom-Json).pid
+  Get-Process -Id $old -ErrorAction SilentlyContinue | Where-Object { $_.ProcessName -in 'powershell', 'pwsh' } | Stop-Process
+  Start-Sleep -Seconds 2
+}
 Start-ScheduledTask -TaskName $taskName
 Start-Sleep -Seconds 5
 & (Join-Path $PSScriptRoot 'status.ps1')

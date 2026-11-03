@@ -4,11 +4,13 @@
 #
 # Runs as one long-lived process (started at logon by the scheduled task from
 # Install-Monitor.ps1, which also restarts it within 5 minutes if it ever stops).
-# Data goes to %LOCALAPPDATA%\memreduct-mcp\monitor as daily JSON Lines files.
+# Data goes to %USERPROFILE%\.memreduct-mcp\monitor as daily JSON Lines files.
 param(
   [int]$SampleSeconds = 60,
   [int]$PollSeconds = 3,
-  [string]$DataDir = (Join-Path $env:LOCALAPPDATA 'memreduct-mcp\monitor'),
+  # Not under AppData: Windows redirects AppData writes from processes that run inside a
+  # Store (MSIX) app's package, such as tools started by the Claude desktop app.
+  [string]$DataDir = (Join-Path $env:USERPROFILE '.memreduct-mcp\monitor'),
   # Optional: another tool's record of its own hotkey cleans (a JSON file it rewrites on
   # every clean), so those cleans are attributed to it instead of "user or other program".
   [string]$OtherToolStateFile = '',
@@ -138,7 +140,10 @@ function Get-CleanLines {
 # (as may another tool); a record written within a minute of the clean names the source.
 function Get-HotkeySource {
   $now = [DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds()
-  foreach ($path in @($mcpState, $mcpState2) | Select-Object -Unique) {
+  # Agents that are Store (MSIX) apps, such as the Claude and Codex desktop apps, may have
+  # their MCP servers' temp files redirected into the app's package folder.
+  $packaged = @(Get-ChildItem -Path (Join-Path $env:LOCALAPPDATA 'Packages\*\LocalCache\Local\Temp\memreduct-mcp-state.json') -ErrorAction SilentlyContinue | ForEach-Object FullName)
+  foreach ($path in @($mcpState, $mcpState2) + $packaged | Select-Object -Unique) {
     try {
       $ms = (Get-Content -LiteralPath $path -Raw | ConvertFrom-Json).lastClean
       if ($ms -and [math]::Abs($now - $ms) -lt 60000) { return 'memreduct-mcp' }

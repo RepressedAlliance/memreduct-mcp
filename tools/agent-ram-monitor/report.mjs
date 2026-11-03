@@ -4,7 +4,7 @@
 import { readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-const dataDir = process.argv[2] ?? join(process.env.LOCALAPPDATA, 'memreduct-mcp', 'monitor');
+const dataDir = process.argv[2] ?? join(process.env.USERPROFILE, '.memreduct-mcp', 'monitor');
 const days = Number(process.argv[3] ?? 7);
 const since = Date.now() - days * 86400e3;
 
