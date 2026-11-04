@@ -8,7 +8,7 @@ Let AI agents (Claude Code, Codex, Cursor, Claude Desktop…) free RAM on Window
 
 AI agents on Windows run long jobs on their own: builds, model inference, renders, many sessions and MCP servers side by side. Memory fills up along the way, and an agent has no way to give it back: idle sessions keep their pages resident, and trimming other programs' memory needs administrator rights the agent doesn't have. Mem Reduct can do it, but only when a person clicks it.
 
-memreduct-mcp closes that gap. The agent checks memory itself and, when a job is about to run out, has the Mem Reduct you already run clean it, then reads back how much came free.
+memreduct-mcp closes that gap: the Mem Reduct you already run cleans at the moments an agent needs it, and the agent is told what happened.
 
 ## How it works
 
@@ -17,6 +17,24 @@ Mem Reduct already runs elevated in your tray. This server presses Mem Reduct's 
 A hotkey clean shows no confirmation and no modal dialog. That is why this server does not use `memreduct.exe -clean`: the command line always ends with a message box that someone has to click.
 
 This project does not include Mem Reduct. Mem Reduct is GPL-3.0 software by Henry++; this server only presses its hotkey.
+
+## When it cleans
+
+Agents can't feel memory pressure, and written guidance alone isn't enough: in a 14-hour video job, an agent with this server's instructions never cleaned on its own, while the PC spent 75 minutes under 1 GB available. So in Claude Code the plugin also ships hooks, which run at each agent step:
+
+| Moment | What happens |
+|---|---|
+| Before heavy work (subagents, workflows, background jobs, builds, renders), under 25% available | Cleans first. Measured gains fade within minutes under load, so this is the moment that counts. |
+| A tool fails with an out-of-memory error (not GPU memory) | Cleans and tells the agent a retry is reasonable. |
+| Under 15% for at least 30 seconds | Tells the agent the figures and the largest processes. Once per session, again after recovery or after 15 minutes. |
+| Under 6% | Cleans at the next step. |
+| Low again within 5 minutes of a clean | Doesn't clean again. Tells the agent the clean didn't hold, so it should lower parallelism, wait, or tell you. |
+
+All sessions share one lock and cooldown. Hooks only run while an agent is working, so for the hours when none is, also set Mem Reduct's own *clean when usage is above* to about 92%.
+
+Set `MEMREDUCT_MCP_NEED_PCT`, `MEMREDUCT_MCP_WARN_PCT`, `MEMREDUCT_MCP_CRITICAL_PCT` or `MEMREDUCT_MCP_REARM_PCT` to change the thresholds, and `MEMREDUCT_MCP_HOOKS=off` to turn the hooks off. What the hooks did is logged to `%USERPROFILE%\.memreduct-mcp\hook-log.jsonl` (memory figures, tool names and session ids only).
+
+Other clients get the tools and the server's instructions, and no hooks yet, so whether the agent cleans on its own is up to the agent.
 
 ## Tools
 
@@ -89,6 +107,7 @@ Programs read those pages back from disk when they touch them again, so cleaning
 npm install
 npm run build   # bundles src/ into dist/index.cjs
 npm test        # end-to-end: starts the server and really cleans memory
+npm run test:policy  # the hooks' decisions, without touching memory
 npm run pack:mcpb  # builds memreduct-mcp.mcpb for Claude Desktop
 ```
 

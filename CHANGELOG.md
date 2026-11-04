@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.2.0 (unreleased)
+
+An agent with 0.1.1's instructions still never cleaned on its own in a 14-hour job, so cleaning no longer depends on the agent remembering to.
+
+- Claude Code plugin hooks: clean before heavy work when under 25% available and after out-of-memory failures; tell the agent when under 15%; clean at the next step under 6%; say so when a clean did not hold instead of cleaning again. Thresholds are configurable, and `MEMREDUCT_MCP_HOOKS=off` disables the hooks.
+- `clean_memory` with `needed_mb` now returns `fits`, and advice when the job still won't fit.
+- Cooldown and a clean lock are shared by all sessions, in `%USERPROFILE%\.memreduct-mcp`.
+- The agent RAM monitor records whether a clean came from the agent or a hook.
+
 ## 0.1.1 (2026-11-03)
 
 - The server now tells every client when to clean (MCP `instructions`), so agents in Codex, Cursor and other clients use it on their own, not only Claude Code with the bundled skill. Claude Code adds it to the system prompt; Codex shows it as the description of the server's tools.

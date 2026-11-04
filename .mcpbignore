@@ -11,3 +11,4 @@ server.json
 package-lock.json
 *.mcpb
 tools/
+hooks/

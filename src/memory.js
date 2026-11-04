@@ -16,8 +16,3 @@ $top = Get-Process | Sort-Object WorkingSet64 -Descending | Select-Object -First
 export async function memoryStatus() {
   return JSON.parse(await powershell(SCRIPT));
 }
-
-export async function availableMB() {
-  const out = await powershell("[math]::Round((Get-Counter '\\Memory\\Available MBytes').CounterSamples[0].CookedValue)");
-  return Number(out.trim());
-}

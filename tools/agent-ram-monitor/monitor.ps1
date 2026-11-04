@@ -140,6 +140,11 @@ function Get-CleanLines {
 # (as may another tool); a record written within a minute of the clean names the source.
 function Get-HotkeySource {
   $now = [DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds()
+  # memreduct-mcp 0.2 and later: one state file, naming who asked (the agent or a hook).
+  try {
+    $state = Get-Content -LiteralPath (Join-Path (Split-Path $DataDir) 'state.json') -Raw | ConvertFrom-Json
+    if ($state.pressAt -and [math]::Abs($now - $state.pressAt) -lt 60000) { return "memreduct-mcp ($($state.by))" }
+  } catch { }
   # Agents that are Store (MSIX) apps, such as the Claude and Codex desktop apps, may have
   # their MCP servers' temp files redirected into the app's package folder.
   $packaged = @(Get-ChildItem -Path (Join-Path $env:LOCALAPPDATA 'Packages\*\LocalCache\Local\Temp\memreduct-mcp-state.json') -ErrorAction SilentlyContinue | ForEach-Object FullName)

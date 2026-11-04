@@ -83,8 +83,8 @@ const path = (fn) => {
   }
   return d;
 };
-const colors = { 'memreduct-mcp': '#d9480f' };
-const tick = (c) => `<line x1="${x(c.ms)}" x2="${x(c.ms)}" y1="${P}" y2="${H - P}" stroke="${colors[c.source] ?? '#adb5bd'}" stroke-width="${c.source === 'memreduct-mcp' ? 2 : 1}" opacity="0.7"><title>${c.t} ${c.source} ${c.memreductReported ?? ''}</title></line>`;
+const isOurs = (source) => source.startsWith('memreduct-mcp');
+const tick = (c) => `<line x1="${x(c.ms)}" x2="${x(c.ms)}" y1="${P}" y2="${H - P}" stroke="${isOurs(c.source) ? '#d9480f' : '#adb5bd'}" stroke-width="${isOurs(c.source) ? 2 : 1}" opacity="0.7"><title>${c.t} ${c.source} ${c.memreductReported ?? ''}</title></line>`;
 const esc = (s) => String(s).replace(/[&<>]/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[ch]));
 const html = `<!doctype html><meta charset="utf-8"><title>Agent RAM monitor</title>
 <style>body{font:14px system-ui;margin:24px;max-width:1150px}table{border-collapse:collapse}td,th{border:1px solid #ccc;padding:4px 8px;text-align:right}th:first-child,td:first-child{text-align:left}pre{background:#f6f6f6;padding:12px}</style>

@@ -6,7 +6,7 @@
 
 Windows 上的 AI Agent 经常自己跑长任务：编译、模型推理、渲染，同时开着好几个会话和 MCP 服务。跑着跑着内存就满了，Agent 自己却释放不了：闲置的会话一直占着物理内存，而清理别的程序的内存需要管理员权限，Agent 没有。Mem Reduct 能清，但要有人去点。
 
-memreduct-mcp 补上了这一步。Agent 自己查看内存，任务快装不下时，让你已经在用的 Mem Reduct 清理一次，再读回实际腾出了多少。
+memreduct-mcp 补上了这一步：在 Agent 需要的时候，让你已经在用的 Mem Reduct 清理，并告诉 Agent 结果。
 
 ## 原理
 
@@ -15,6 +15,24 @@ Mem Reduct 本来就以管理员身份常驻在托盘里。这个服务只是按
 用快捷键清理时，Mem Reduct 既不弹确认框，也不弹模态对话框。命令行 `memreduct.exe -clean` 则一定会弹出必须点“确定”的对话框，所以这里不用命令行。
 
 本项目不包含 Mem Reduct。Mem Reduct 是 Henry++ 以 GPL-3.0 发布的软件，本项目只负责按它的快捷键。
+
+## 什么时候清理
+
+Agent 感觉不到内存压力，只写说明也不够：在一个跑了 14 小时的视频任务里，带着本服务说明的 Agent 一次都没有主动清理，而电脑有 75 分钟可用内存低于 1 GB。所以在 Claude Code 里，插件还带了 hook，在 Agent 的每一步运行：
+
+| 时机 | 做什么 |
+|---|---|
+| 重任务开始前（子 Agent、Workflow、后台任务、编译、渲染），可用内存低于 25% | 先清理。实测清理的收益在负载下几分钟就会回吐，所以这一刻最关键。 |
+| 工具因内存不足报错（显存不足除外） | 清理，并告诉 Agent 可以重试。 |
+| 低于 15% 持续至少 30 秒 | 告诉 Agent 当前数字和占用最多的进程。每个会话提醒一次，恢复后或 15 分钟后再提醒。 |
+| 低于 6% | 下一步就清理。 |
+| 清理后 5 分钟内又低了 | 不再清理，告诉 Agent 清理没保持住，应该降低并发、等一等或告诉你。 |
+
+所有会话共用一把锁和冷却时间。hook 只在 Agent 工作时运行，所以没有 Agent 在跑的时段，建议把 Mem Reduct 自带的“内存用量超过一定比例时清理”设为约 92%。
+
+用 `MEMREDUCT_MCP_NEED_PCT`、`MEMREDUCT_MCP_WARN_PCT`、`MEMREDUCT_MCP_CRITICAL_PCT`、`MEMREDUCT_MCP_REARM_PCT` 改阈值，`MEMREDUCT_MCP_HOOKS=off` 关闭 hook。hook 做过什么记录在 `%USERPROFILE%\.memreduct-mcp\hook-log.jsonl`（只有内存数字、工具名和会话 ID）。
+
+其他客户端有工具和服务说明，暂时没有 hook，所以 Agent 会不会主动清理取决于它自己。
 
 ## 工具
 
@@ -87,6 +105,7 @@ codex mcp add memreduct -- npx -y memreduct-mcp
 npm install
 npm run build   # 把 src/ 打包成 dist/index.cjs
 npm test        # 端到端测试：启动服务并真正清理一次内存
+npm run test:policy  # 测 hook 的决策，不碰内存
 npm run pack:mcpb  # 生成给 Claude Desktop 用的 memreduct-mcp.mcpb
 ```
 

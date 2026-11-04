@@ -1,21 +1,13 @@
 #!/usr/bin/env node
 // MCP server that lets AI agents free RAM with the user's own Mem Reduct.
-import { readFileSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
-import { setupStatus, triggerClean } from './memreduct.js';
-import { availableMB, memoryStatus } from './memory.js';
+import { availableMB, COOLDOWN_SECONDS, performClean } from './clean.js';
+import { setupStatus } from './memreduct.js';
+import { memoryStatus } from './memory.js';
 
-const VERSION = '0.1.1';
-const STATE = join(tmpdir(), 'memreduct-mcp-state.json');
-// Cleaning trims every process's working set; pages come back from disk when used,
-// so repeated cleans cost performance. Agents get a cooldown, not a turbo button.
-// A client that leaves a config placeholder unexpanded must not switch the cooldown off.
-const envCooldown = Number(process.env.MEMREDUCT_MCP_COOLDOWN);
-const COOLDOWN_SECONDS = process.env.MEMREDUCT_MCP_COOLDOWN && envCooldown >= 0 ? envCooldown : 120;
+const VERSION = '0.2.0';
 
 const NOTE = 'Cleaning frees physical RAM for a while (working sets, standby and modified lists). '
   + 'Programs read trimmed pages back when they use them, so it does not make the PC faster in general. '
@@ -47,30 +39,25 @@ const tools = [
   },
 ];
 
-function lastClean() {
-  try { return JSON.parse(readFileSync(STATE, 'utf8')).lastClean ?? 0; } catch { return 0; }
-}
-
 async function cleanMemory({ needed_mb: needed } = {}) {
-  const before = await availableMB();
+  const before = availableMB();
   if (needed && before >= needed) {
     return { cleaned: false, reason: `Already ${before} MB available (needed ${needed} MB).`, availableMB: before };
   }
-  const wait = Math.ceil(COOLDOWN_SECONDS - (Date.now() - lastClean()) / 1000);
-  if (wait > 0) return { cleaned: false, reason: `Cooldown: try again in ${wait} s.`, availableMB: before };
-  const result = await triggerClean();
-  if (!result.triggered) return { cleaned: false, reason: 'Mem Reduct is not ready.', setup: result.status };
-  writeFileSync(STATE, JSON.stringify({ lastClean: Date.now() }));
-  await new Promise((r) => setTimeout(r, 1500)); // let freed pages settle before measuring
-  const after = await availableMB();
+  const clean = await performClean('agent');
+  if (clean.status === 'cooldown') return { cleaned: false, reason: `Cooldown: try again in ${clean.waitSeconds} s.`, availableMB: before };
+  if (clean.status === 'busy') return { cleaned: false, reason: 'Another session is cleaning right now.', availableMB: before };
+  if (clean.status === 'not-ready') return { cleaned: false, reason: 'Mem Reduct is not ready.', setup: clean.setup };
+  if (clean.status === 'unconfirmed') return { cleaned: false, availableBeforeMB: before, availableAfterMB: availableMB(), hotkey: clean.hotkey, hint: clean.hint, note: NOTE };
   return {
-    cleaned: result.confirmed,
-    availableBeforeMB: before,
-    availableAfterMB: after,
-    freedMB: after - before,
-    ...(result.memreductReported ? { memreductReported: result.memreductReported } : {}),
-    hotkey: result.hotkey,
-    ...(result.confirmed ? {} : { hint: result.hint }),
+    cleaned: true,
+    availableBeforeMB: clean.beforeMB,
+    availableAfterMB: clean.afterMB,
+    freedMB: clean.afterMB - clean.beforeMB,
+    ...(needed ? { neededMB: needed, fits: clean.afterMB >= needed } : {}),
+    ...(needed && clean.afterMB < needed ? { advice: 'Still short of what the job needs. Lower its parallelism, wait for running jobs, or tell the user what is using the memory.' } : {}),
+    ...(clean.memreductReported ? { memreductReported: clean.memreductReported } : {}),
+    hotkey: clean.hotkey,
     note: NOTE,
   };
 }
@@ -87,7 +74,7 @@ const INSTRUCTIONS = 'Frees physical RAM on Windows through the user\'s running 
   + '(1) before work that needs a lot of memory (builds, model inference, renders, many parallel agents or subagents), call memory_status and, if available RAM is short, clean_memory with needed_mb set to what the job needs; '
   + '(2) after a step fails with out-of-memory, "low virtual memory" or similar errors, or when commands slow down or time out while available RAM is low, clean once and retry once. '
   + 'Do not clean on a schedule or repeatedly: there is a cooldown, and programs read trimmed pages back from disk. '
-  + 'Tell the user available RAM before and after. If clean_memory reports setup problems, relay them; never elevate or change Mem Reduct\'s settings.';
+  + 'If memory is holding you back, try a clean before lowering parallelism. Tell the user available RAM before and after. If clean_memory reports setup problems, relay them; never elevate or change Mem Reduct\'s settings.';
 
 const server = new Server({ name: 'memreduct-mcp', version: VERSION }, { capabilities: { tools: {} }, instructions: INSTRUCTIONS });
 server.setRequestHandler(ListToolsRequestSchema, async () => ({ tools }));

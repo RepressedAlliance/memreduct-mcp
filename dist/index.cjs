@@ -7255,11 +7255,6 @@ var require_dist = __commonJS({
   }
 });
 
-// src/index.js
-var import_node_fs2 = require("node:fs");
-var import_node_os = require("node:os");
-var import_node_path2 = require("node:path");
-
 // node_modules/zod/v4/core/util.js
 var util_exports = {};
 __export(util_exports, {
@@ -17044,6 +17039,9 @@ var StdioServerTransport = class {
   }
 };
 
+// src/clean.js
+var import_node_os2 = require("node:os");
+
 // src/memreduct.js
 var import_node_child_process = require("node:child_process");
 var import_node_fs = require("node:fs");
@@ -17190,6 +17188,92 @@ async function triggerClean(timeoutMs = 15e3) {
   };
 }
 
+// src/state.js
+var import_node_fs2 = require("node:fs");
+var import_node_os = require("node:os");
+var import_node_path2 = require("node:path");
+var DATA_DIR = process.env.MEMREDUCT_MCP_DATA_DIR || (0, import_node_path2.join)((0, import_node_os.homedir)(), ".memreduct-mcp");
+var STATE2 = (0, import_node_path2.join)(DATA_DIR, "state.json");
+var LOCK = (0, import_node_path2.join)(DATA_DIR, "clean.lock");
+var LOG = (0, import_node_path2.join)(DATA_DIR, "hook-log.jsonl");
+var LOCK_STALE_MS = 6e4;
+function readState() {
+  try {
+    return JSON.parse((0, import_node_fs2.readFileSync)(STATE2, "utf8"));
+  } catch {
+    return {};
+  }
+}
+function writeState(state) {
+  (0, import_node_fs2.mkdirSync)(DATA_DIR, { recursive: true });
+  const tmp = `${STATE2}.${process.pid}.tmp`;
+  (0, import_node_fs2.writeFileSync)(tmp, JSON.stringify(state));
+  try {
+    (0, import_node_fs2.renameSync)(tmp, STATE2);
+  } catch {
+    (0, import_node_fs2.writeFileSync)(STATE2, JSON.stringify(state));
+    try {
+      (0, import_node_fs2.unlinkSync)(tmp);
+    } catch {
+    }
+  }
+}
+function updateState(change) {
+  const state = readState();
+  change(state);
+  writeState(state);
+}
+function acquireCleanLock() {
+  (0, import_node_fs2.mkdirSync)(DATA_DIR, { recursive: true });
+  try {
+    if (Date.now() - (0, import_node_fs2.statSync)(LOCK).mtimeMs > LOCK_STALE_MS) (0, import_node_fs2.unlinkSync)(LOCK);
+  } catch {
+  }
+  try {
+    (0, import_node_fs2.closeSync)((0, import_node_fs2.openSync)(LOCK, "wx"));
+  } catch {
+    return null;
+  }
+  return () => {
+    try {
+      (0, import_node_fs2.unlinkSync)(LOCK);
+    } catch {
+    }
+  };
+}
+
+// src/clean.js
+var envCooldown = Number(process.env.MEMREDUCT_MCP_COOLDOWN);
+var COOLDOWN_SECONDS = process.env.MEMREDUCT_MCP_COOLDOWN && envCooldown >= 0 ? envCooldown : 120;
+var availableMB = () => Math.round((0, import_node_os2.freemem)() / 1048576);
+async function performClean(by) {
+  const beforeMB = availableMB();
+  const release = acquireCleanLock();
+  if (!release) return { status: "busy", beforeMB };
+  try {
+    const wait = Math.ceil(COOLDOWN_SECONDS - (Date.now() - (readState().lastClean ?? 0)) / 1e3);
+    if (wait > 0) return { status: "cooldown", waitSeconds: wait, beforeMB };
+    updateState((s) => {
+      s.pressAt = Date.now();
+      s.by = by;
+    });
+    const result = await triggerClean();
+    if (!result.triggered) return { status: "not-ready", setup: result.status, beforeMB };
+    updateState((s) => {
+      s.lastClean = Date.now();
+    });
+    if (!result.confirmed) return { status: "unconfirmed", hint: result.hint, hotkey: result.hotkey, beforeMB };
+    await new Promise((r) => setTimeout(r, 1500));
+    const afterMB = availableMB();
+    updateState((s) => {
+      s.afterMB = afterMB;
+    });
+    return { status: "cleaned", beforeMB, afterMB, hotkey: result.hotkey, memreductReported: result.memreductReported };
+  } finally {
+    release();
+  }
+}
+
 // src/memory.js
 var SCRIPT = `
 $os = Get-CimInstance Win32_OperatingSystem
@@ -17205,16 +17289,9 @@ $top = Get-Process | Sort-Object WorkingSet64 -Descending | Select-Object -First
 async function memoryStatus() {
   return JSON.parse(await powershell(SCRIPT));
 }
-async function availableMB() {
-  const out = await powershell("[math]::Round((Get-Counter '\\Memory\\Available MBytes').CounterSamples[0].CookedValue)");
-  return Number(out.trim());
-}
 
 // src/index.js
-var VERSION = "0.1.1";
-var STATE2 = (0, import_node_path2.join)((0, import_node_os.tmpdir)(), "memreduct-mcp-state.json");
-var envCooldown = Number(process.env.MEMREDUCT_MCP_COOLDOWN);
-var COOLDOWN_SECONDS = process.env.MEMREDUCT_MCP_COOLDOWN && envCooldown >= 0 ? envCooldown : 120;
+var VERSION = "0.2.0";
 var NOTE = "Cleaning frees physical RAM for a while (working sets, standby and modified lists). Programs read trimmed pages back when they use them, so it does not make the PC faster in general. Use it right before a memory-hungry task, not as routine maintenance.";
 var tools = [
   {
@@ -17238,33 +17315,25 @@ var tools = [
     inputSchema: { type: "object", properties: {} }
   }
 ];
-function lastClean() {
-  try {
-    return JSON.parse((0, import_node_fs2.readFileSync)(STATE2, "utf8")).lastClean ?? 0;
-  } catch {
-    return 0;
-  }
-}
 async function cleanMemory({ needed_mb: needed } = {}) {
-  const before = await availableMB();
+  const before = availableMB();
   if (needed && before >= needed) {
     return { cleaned: false, reason: `Already ${before} MB available (needed ${needed} MB).`, availableMB: before };
   }
-  const wait = Math.ceil(COOLDOWN_SECONDS - (Date.now() - lastClean()) / 1e3);
-  if (wait > 0) return { cleaned: false, reason: `Cooldown: try again in ${wait} s.`, availableMB: before };
-  const result = await triggerClean();
-  if (!result.triggered) return { cleaned: false, reason: "Mem Reduct is not ready.", setup: result.status };
-  (0, import_node_fs2.writeFileSync)(STATE2, JSON.stringify({ lastClean: Date.now() }));
-  await new Promise((r) => setTimeout(r, 1500));
-  const after = await availableMB();
+  const clean = await performClean("agent");
+  if (clean.status === "cooldown") return { cleaned: false, reason: `Cooldown: try again in ${clean.waitSeconds} s.`, availableMB: before };
+  if (clean.status === "busy") return { cleaned: false, reason: "Another session is cleaning right now.", availableMB: before };
+  if (clean.status === "not-ready") return { cleaned: false, reason: "Mem Reduct is not ready.", setup: clean.setup };
+  if (clean.status === "unconfirmed") return { cleaned: false, availableBeforeMB: before, availableAfterMB: availableMB(), hotkey: clean.hotkey, hint: clean.hint, note: NOTE };
   return {
-    cleaned: result.confirmed,
-    availableBeforeMB: before,
-    availableAfterMB: after,
-    freedMB: after - before,
-    ...result.memreductReported ? { memreductReported: result.memreductReported } : {},
-    hotkey: result.hotkey,
-    ...result.confirmed ? {} : { hint: result.hint },
+    cleaned: true,
+    availableBeforeMB: clean.beforeMB,
+    availableAfterMB: clean.afterMB,
+    freedMB: clean.afterMB - clean.beforeMB,
+    ...needed ? { neededMB: needed, fits: clean.afterMB >= needed } : {},
+    ...needed && clean.afterMB < needed ? { advice: "Still short of what the job needs. Lower its parallelism, wait for running jobs, or tell the user what is using the memory." } : {},
+    ...clean.memreductReported ? { memreductReported: clean.memreductReported } : {},
+    hotkey: clean.hotkey,
     note: NOTE
   };
 }
@@ -17273,7 +17342,7 @@ var handlers = {
   clean_memory: (args) => cleanMemory(args),
   memreduct_setup_check: () => setupStatus()
 };
-var INSTRUCTIONS = `Frees physical RAM on Windows through the user's running Mem Reduct. Use it on your own, without asking first: (1) before work that needs a lot of memory (builds, model inference, renders, many parallel agents or subagents), call memory_status and, if available RAM is short, clean_memory with needed_mb set to what the job needs; (2) after a step fails with out-of-memory, "low virtual memory" or similar errors, or when commands slow down or time out while available RAM is low, clean once and retry once. Do not clean on a schedule or repeatedly: there is a cooldown, and programs read trimmed pages back from disk. Tell the user available RAM before and after. If clean_memory reports setup problems, relay them; never elevate or change Mem Reduct's settings.`;
+var INSTRUCTIONS = `Frees physical RAM on Windows through the user's running Mem Reduct. Use it on your own, without asking first: (1) before work that needs a lot of memory (builds, model inference, renders, many parallel agents or subagents), call memory_status and, if available RAM is short, clean_memory with needed_mb set to what the job needs; (2) after a step fails with out-of-memory, "low virtual memory" or similar errors, or when commands slow down or time out while available RAM is low, clean once and retry once. Do not clean on a schedule or repeatedly: there is a cooldown, and programs read trimmed pages back from disk. If memory is holding you back, try a clean before lowering parallelism. Tell the user available RAM before and after. If clean_memory reports setup problems, relay them; never elevate or change Mem Reduct's settings.`;
 var server = new Server({ name: "memreduct-mcp", version: VERSION }, { capabilities: { tools: {} }, instructions: INSTRUCTIONS });
 server.setRequestHandler(ListToolsRequestSchema, async () => ({ tools }));
 server.setRequestHandler(CallToolRequestSchema, async (req) => {

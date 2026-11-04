@@ -1,6 +1,6 @@
 {
   "name": "memreduct",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "Let Claude free RAM with your own Mem Reduct before memory-hungry jobs, without admin prompts.",
   "author": {
     "name": "RepressedAlliance"

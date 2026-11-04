@@ -1,0 +1,26 @@
+{
+  "description": "Clean RAM before memory-hungry steps and after out-of-memory failures, and tell the agent when memory is low.",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Agent|Task|Workflow|Bash|PowerShell|mcp__.*start_process",
+        "hooks": [{ "type": "command", "command": "node", "args": ["${CLAUDE_PLUGIN_ROOT}/dist/hook.cjs"], "timeout": 60 }]
+      }
+    ],
+    "PostToolBatch": [
+      {
+        "hooks": [{ "type": "command", "command": "node", "args": ["${CLAUDE_PLUGIN_ROOT}/dist/hook.cjs"], "timeout": 60 }]
+      }
+    ],
+    "PostToolUseFailure": [
+      {
+        "hooks": [{ "type": "command", "command": "node", "args": ["${CLAUDE_PLUGIN_ROOT}/dist/hook.cjs"], "timeout": 60 }]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [{ "type": "command", "command": "node", "args": ["${CLAUDE_PLUGIN_ROOT}/dist/hook.cjs"], "timeout": 60 }]
+      }
+    ]
+  }
+}

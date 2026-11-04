@@ -1,6 +1,6 @@
 {
   "name": "memreduct-mcp",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "MCP server that lets AI agents free RAM with the user's own Mem Reduct, without admin prompts.",
   "mcpName": "io.github.RepressedAlliance/memreduct-mcp",
   "author": "RepressedAlliance",
@@ -14,8 +14,9 @@
   "os": ["win32"],
   "engines": { "node": ">=18" },
   "scripts": {
-    "build": "esbuild src/index.js --bundle --platform=node --target=node18 --format=cjs --outfile=dist/index.cjs",
+    "build": "esbuild src/index.js src/hook.js --bundle --platform=node --target=node18 --format=cjs --outdir=dist --out-extension:.js=.cjs",
     "test": "node test/smoke.mjs",
+    "test:policy": "node --test test/policy.test.mjs",
     "pack:mcpb": "npx -y @anthropic-ai/mcpb@2.1.2 pack . memreduct-mcp.mcpb"
   },
   "devDependencies": { "@modelcontextprotocol/sdk": "1.32.2", "esbuild": "0.28.2" },
