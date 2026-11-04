@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.2.1 (unreleased)
+## 0.2.2 (unreleased)
 
 - A clean under heavy memory pressure takes over 20 seconds; the wait for Mem Reduct's confirmation is now 45 seconds, so a clean that worked is no longer reported as failed.
 - A command counts as heavy work by the program it runs, so `which blender` or a search for the word `ffmpeg` no longer triggers a clean.

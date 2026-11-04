@@ -17145,7 +17145,7 @@ async function setupStatus() {
     problems
   };
 }
-async function triggerClean(timeoutMs = 15e3) {
+async function triggerClean(timeoutMs = 45e3) {
   const status = await setupStatus();
   if (!status.ready) return { triggered: false, status };
   const hk = decodeHotkey(Number(readIni(status.iniPath).HotkeyClean ?? DEFAULT_HOTKEY));
@@ -17184,7 +17184,7 @@ async function triggerClean(timeoutMs = 15e3) {
     triggered: true,
     confirmed: false,
     hotkey: hk.label,
-    hint: "Mem Reduct did not record a clean. Likely causes: another program owns the same hotkey, an elevated window (for example Task Manager) has keyboard focus so Windows blocked the key press, or the workstation is locked."
+    hint: "Mem Reduct did not record a clean within 45 seconds. Likely causes: another program owns the same hotkey, an elevated window (for example Task Manager) has keyboard focus so Windows blocked the key press, or the workstation is locked."
   };
 }
 
@@ -17291,7 +17291,7 @@ async function memoryStatus() {
 }
 
 // src/index.js
-var VERSION = "0.2.0";
+var VERSION = "0.2.2";
 var NOTE = "Cleaning frees physical RAM for a while (working sets, standby and modified lists). Programs read trimmed pages back when they use them, so it does not make the PC faster in general. Use it right before a memory-hungry task, not as routine maintenance.";
 var tools = [
   {

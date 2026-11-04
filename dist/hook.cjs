@@ -107,7 +107,7 @@ async function setupStatus() {
     problems
   };
 }
-async function triggerClean(timeoutMs = 15e3) {
+async function triggerClean(timeoutMs = 45e3) {
   const status = await setupStatus();
   if (!status.ready) return { triggered: false, status };
   const hk = decodeHotkey(Number(readIni(status.iniPath).HotkeyClean ?? DEFAULT_HOTKEY));
@@ -146,7 +146,7 @@ async function triggerClean(timeoutMs = 15e3) {
     triggered: true,
     confirmed: false,
     hotkey: hk.label,
-    hint: "Mem Reduct did not record a clean. Likely causes: another program owns the same hotkey, an elevated window (for example Task Manager) has keyboard focus so Windows blocked the key press, or the workstation is locked."
+    hint: "Mem Reduct did not record a clean within 45 seconds. Likely causes: another program owns the same hotkey, an elevated window (for example Task Manager) has keyboard focus so Windows blocked the key press, or the workstation is locked."
   };
 }
 
@@ -285,13 +285,26 @@ var defaults = () => ({
 });
 var HEAVY_TOOLS = /^(Agent|Task|Workflow)$|^mcp__.*start_process$/;
 var SHELL_TOOLS = /^(Bash|PowerShell)$/;
-var HEAVY_COMMAND = /\b(blender|ffmpeg|melt|handbrake|comfyui|ollama|llama|whisper|torch|tensorflow|transformers|docker\s+(build|compose)|cargo\s+(build|test)|(npm|pnpm|yarn|bun)\s+(run\s+)?(build|test)|next\s+build|vite\s+build|webpack|tsc|gradle|mvn|msbuild|dotnet\s+(build|test)|cmake\s+--build|ninja|pytest|playwright)\b/i;
+var HEAVY_PROGRAMS = /* @__PURE__ */ new Set(["blender", "ffmpeg", "melt", "handbrakecli", "ollama", "llama-server", "llama-cli", "whisper", "webpack", "tsc", "gradle", "gradlew", "mvn", "mvnw", "msbuild", "ninja", "pytest", "playwright"]);
+var HEAVY_INVOCATION = /^(docker\s+(build|compose)|cargo\s+(build|test)|(npm|pnpm|yarn|bun)\s+(run\s+)?(build|test)|npx\s+(tsc|webpack|playwright|vite\s+build|next\s+build)|next\s+build|vite\s+build|dotnet\s+(build|test)|cmake\s+--build)\b/i;
+var HEAVY_PYTHON = /^python\S*\s.*\b(torch|tensorflow|transformers|whisper|comfyui|train)\b/i;
+var COMMAND_PREFIX = /^(?:\w+=\S*\s+|timeout\s+\S+\s+|nice\s+|time\s+|exec\s+|do\s+|then\s+|else\s+|&\s*)/;
 var MEMORY_ERROR = /out of memory|outofmemory|MemoryError|low virtual memory|bad_alloc|cannot allocate memory|insufficient memory|not enough memory|ENOMEM|0xC0000017|paging file is too small|heap out of memory/i;
 var NOT_SYSTEM_RAM = /CUDA|VRAM|GPU|OptiX|Cg C\d+|shader/i;
+function isHeavySegment(raw) {
+  let segment = raw.trim();
+  while (COMMAND_PREFIX.test(segment)) segment = segment.replace(COMMAND_PREFIX, "");
+  const match = /^"([^"]+)"|^'([^']+)'|^(\S+)/.exec(segment);
+  if (!match) return false;
+  const program = (match[1] ?? match[2] ?? match[3]).split(/[\\/]/).pop().replace(/\.(exe|cmd|bat)$/i, "").toLowerCase();
+  const normalized = `${program}${segment.slice(match[0].length)}`;
+  return HEAVY_PROGRAMS.has(program) || HEAVY_INVOCATION.test(normalized) || HEAVY_PYTHON.test(normalized);
+}
 function isHeavy(toolName, toolInput = {}) {
   if (HEAVY_TOOLS.test(toolName)) return true;
   if (!SHELL_TOOLS.test(toolName)) return false;
-  return toolInput.run_in_background === true || HEAVY_COMMAND.test(String(toolInput.command ?? ""));
+  if (toolInput.run_in_background === true) return true;
+  return String(toolInput.command ?? "").split(/&&|\|\||[;\n|]/).some(isHeavySegment);
 }
 function isMemoryError(text) {
   const s = String(text ?? "");

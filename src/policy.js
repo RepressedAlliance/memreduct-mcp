@@ -25,9 +25,9 @@ export const defaults = () => ({
 const HEAVY_TOOLS = /^(Agent|Task|Workflow)$|^mcp__.*start_process$/;
 const SHELL_TOOLS = /^(Bash|PowerShell)$/;
 const HEAVY_PROGRAMS = new Set(['blender', 'ffmpeg', 'melt', 'handbrakecli', 'ollama', 'llama-server', 'llama-cli', 'whisper', 'webpack', 'tsc', 'gradle', 'gradlew', 'mvn', 'mvnw', 'msbuild', 'ninja', 'pytest', 'playwright']);
-const HEAVY_INVOCATION = /^(dockers+(build|compose)|cargos+(build|test)|(npm|pnpm|yarn|bun)s+(runs+)?(build|test)|npxs+(tsc|webpack|playwright|vites+build|nexts+build)|nexts+build|vites+build|dotnets+(build|test)|cmakes+--build)/i;
-const HEAVY_PYTHON = /^pythonS*s.*(torch|tensorflow|transformers|whisper|comfyui|train)/i;
-const COMMAND_PREFIX = /^(?:w+=S*s+|timeouts+S+s+|nices+|times+|execs+|dos+|thens+|elses+|&s*)/;
+const HEAVY_INVOCATION = /^(docker\s+(build|compose)|cargo\s+(build|test)|(npm|pnpm|yarn|bun)\s+(run\s+)?(build|test)|npx\s+(tsc|webpack|playwright|vite\s+build|next\s+build)|next\s+build|vite\s+build|dotnet\s+(build|test)|cmake\s+--build)\b/i;
+const HEAVY_PYTHON = /^python\S*\s.*\b(torch|tensorflow|transformers|whisper|comfyui|train)\b/i;
+const COMMAND_PREFIX = /^(?:\w+=\S*\s+|timeout\s+\S+\s+|nice\s+|time\s+|exec\s+|do\s+|then\s+|else\s+|&\s*)/;
 // Graphics and GPU memory errors are not helped by freeing system RAM.
 const MEMORY_ERROR = /out of memory|outofmemory|MemoryError|low virtual memory|bad_alloc|cannot allocate memory|insufficient memory|not enough memory|ENOMEM|0xC0000017|paging file is too small|heap out of memory/i;
 const NOT_SYSTEM_RAM = /CUDA|VRAM|GPU|OptiX|Cg C\d+|shader/i;
@@ -37,9 +37,9 @@ const NOT_SYSTEM_RAM = /CUDA|VRAM|GPU|OptiX|Cg C\d+|shader/i;
 function isHeavySegment(raw) {
   let segment = raw.trim();
   while (COMMAND_PREFIX.test(segment)) segment = segment.replace(COMMAND_PREFIX, '');
-  const match = /^"([^"]+)"|^'([^']+)'|^(S+)/.exec(segment);
+  const match = /^"([^"]+)"|^'([^']+)'|^(\S+)/.exec(segment);
   if (!match) return false;
-  const program = (match[1] ?? match[2] ?? match[3]).split(/[\/]/).pop().replace(/.(exe|cmd|bat)$/i, '').toLowerCase();
+  const program = (match[1] ?? match[2] ?? match[3]).split(/[\\/]/).pop().replace(/\.(exe|cmd|bat)$/i, '').toLowerCase();
   const normalized = `${program}${segment.slice(match[0].length)}`;
   return HEAVY_PROGRAMS.has(program) || HEAVY_INVOCATION.test(normalized) || HEAVY_PYTHON.test(normalized);
 }
@@ -48,8 +48,7 @@ export function isHeavy(toolName, toolInput = {}) {
   if (HEAVY_TOOLS.test(toolName)) return true;
   if (!SHELL_TOOLS.test(toolName)) return false;
   if (toolInput.run_in_background === true) return true;
-  return String(toolInput.command ?? '').split(/&&||||[;
-|]/).some(isHeavySegment);
+  return String(toolInput.command ?? '').split(/&&|\|\||[;\n|]/).some(isHeavySegment);
 }
 
 export function isMemoryError(text) {
