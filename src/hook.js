@@ -8,6 +8,8 @@ import { memoryStatus } from './memory.js';
 import { decide, describe } from './policy.js';
 import { logEvent, readState, writeState } from './state.js';
 
+const MEANINGFUL_GAIN_MB = 300;
+
 const readStdin = () => new Promise((resolve) => {
   let data = '';
   process.stdin.setEncoding('utf8');
@@ -54,7 +56,9 @@ async function main() {
     const clean = await performClean(`hook:${result.kind}`);
     logEvent({ ...log, action: 'clean', status: clean.status, beforeMB: clean.beforeMB, afterMB: clean.afterMB, reported: clean.memreductReported });
     if (clean.status === 'cleaned') {
-      const text = describe(result.kind, { ...clean, totalMB });
+      // Under heavy load a clean can free nothing, or be outrun while it runs. Say so.
+      const gained = clean.afterMB - clean.beforeMB >= MEANINGFUL_GAIN_MB;
+      const text = describe(gained ? result.kind : 'no-gain', { ...clean, totalMB });
       respond(event, text, text);
     } else if (clean.status === 'not-ready' || clean.status === 'unconfirmed') {
       respond(event, describe('cannot-clean', { availMB, totalMB, setupProblems: clean.setup?.problems, hint: clean.hint }));

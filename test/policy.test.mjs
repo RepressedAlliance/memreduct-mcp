@@ -1,7 +1,7 @@
 // The hook's decisions, without touching memory or Mem Reduct. npm run test:policy
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { decide, isHeavy, isMemoryError } from '../src/policy.js';
+import { decide, describe, isHeavy, isMemoryError } from '../src/policy.js';
 
 const MIN = 60000;
 const base = { totalMB: 16000, now: 100 * MIN, session: 's1', state: {} };
@@ -100,4 +100,10 @@ test('GPU memory errors are not system RAM', () => {
   assert.ok(!isMemoryError('NVIDIA Cg C9008 out of memory'));
   assert.ok(isMemoryError('JavaScript heap out of memory'));
   assert.ok(isMemoryError('The paging file is too small for this operation'));
+});
+
+test('a clean that gained nothing says so', () => {
+  const text = describe('no-gain', { beforeMB: 1900, afterMB: 800, totalMB: 16000 });
+  assert.match(text, /in active use/);
+  assert.doesNotMatch(text, /cleaned RAM/);
 });

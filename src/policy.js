@@ -101,6 +101,8 @@ export function describe(kind, { beforeMB, afterMB, availMB, totalMB, minutesSin
         : 'Freed memory tends to fill again within minutes under load, so start what you need now and avoid adding more parallel work than fits.';
       return `memreduct cleaned RAM ${opening}: available went from ${gb(beforeMB)} to ${of(afterMB)}. ${close}`;
     }
+    case 'no-gain':
+      return `memreduct ran a clean, but available RAM went from ${gb(beforeMB)} to ${of(afterMB)}: the memory is in active use, so cleaning can't free it. Lower parallelism, wait for running jobs, or tell the user what is using the memory.`;
     case 'low':
       return `Available RAM is ${of(availMB)}.${topText} The memreduct clean_memory tool can free some of it now; if the next steps need memory, use it before starting them.`;
     case 'oom-did-not-hold':
