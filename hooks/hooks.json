@@ -4,22 +4,22 @@
     "PreToolUse": [
       {
         "matcher": "Agent|Task|Workflow|Bash|PowerShell|mcp__.*start_process",
-        "hooks": [{ "type": "command", "command": "node", "args": ["${CLAUDE_PLUGIN_ROOT}/dist/hook.cjs"], "timeout": 60 }]
+        "hooks": [{ "type": "command", "command": "node", "args": ["${CLAUDE_PLUGIN_ROOT}/dist/hook.cjs"], "timeout": 90 }]
       }
     ],
     "PostToolBatch": [
       {
-        "hooks": [{ "type": "command", "command": "node", "args": ["${CLAUDE_PLUGIN_ROOT}/dist/hook.cjs"], "timeout": 60 }]
+        "hooks": [{ "type": "command", "command": "node", "args": ["${CLAUDE_PLUGIN_ROOT}/dist/hook.cjs"], "timeout": 90 }]
       }
     ],
     "PostToolUseFailure": [
       {
-        "hooks": [{ "type": "command", "command": "node", "args": ["${CLAUDE_PLUGIN_ROOT}/dist/hook.cjs"], "timeout": 60 }]
+        "hooks": [{ "type": "command", "command": "node", "args": ["${CLAUDE_PLUGIN_ROOT}/dist/hook.cjs"], "timeout": 90 }]
       }
     ],
     "UserPromptSubmit": [
       {
-        "hooks": [{ "type": "command", "command": "node", "args": ["${CLAUDE_PLUGIN_ROOT}/dist/hook.cjs"], "timeout": 60 }]
+        "hooks": [{ "type": "command", "command": "node", "args": ["${CLAUDE_PLUGIN_ROOT}/dist/hook.cjs"], "timeout": 90 }]
       }
     ]
   }

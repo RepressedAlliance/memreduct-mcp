@@ -7,7 +7,7 @@ import { availableMB, COOLDOWN_SECONDS, performClean } from './clean.js';
 import { setupStatus } from './memreduct.js';
 import { memoryStatus } from './memory.js';
 
-const VERSION = '0.2.0';
+const VERSION = '0.2.1';
 
 const NOTE = 'Cleaning frees physical RAM for a while (working sets, standby and modified lists). '
   + 'Programs read trimmed pages back when they use them, so it does not make the PC faster in general. '

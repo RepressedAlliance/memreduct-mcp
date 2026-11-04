@@ -126,9 +126,10 @@ export async function setupStatus() {
 
 /**
  * Press Mem Reduct's clean hotkey, then wait until Mem Reduct records a new
- * StatisticLastReduct timestamp in its ini (it writes one after every clean).
+ * StatisticLastReduct timestamp in its ini (it writes one after every clean). A clean
+ * takes over 20 seconds when memory is nearly gone, which is exactly when it matters.
  */
-export async function triggerClean(timeoutMs = 15000) {
+export async function triggerClean(timeoutMs = 45000) {
   const status = await setupStatus();
   if (!status.ready) return { triggered: false, status };
   const hk = decodeHotkey(Number(readIni(status.iniPath).HotkeyClean ?? DEFAULT_HOTKEY));
@@ -165,6 +166,6 @@ export async function triggerClean(timeoutMs = 15000) {
     triggered: true,
     confirmed: false,
     hotkey: hk.label,
-    hint: 'Mem Reduct did not record a clean. Likely causes: another program owns the same hotkey, an elevated window (for example Task Manager) has keyboard focus so Windows blocked the key press, or the workstation is locked.',
+    hint: 'Mem Reduct did not record a clean within 45 seconds. Likely causes: another program owns the same hotkey, an elevated window (for example Task Manager) has keyboard focus so Windows blocked the key press, or the workstation is locked.',
   };
 }

@@ -28,6 +28,14 @@ test('what counts as heavy', () => {
   assert.ok(isHeavy('Bash', { command: '"/c/Program Files/Blender Foundation/blender.exe" -b x' }));
   assert.ok(isHeavy('PowerShell', { command: 'npm run build' }));
   assert.ok(!isHeavy('Bash', { command: 'git status' }));
+  assert.ok(isHeavy('Bash', { command: 'cd work && timeout 600 "/c/Program Files/Blender Foundation/Blender 5.2/blender.exe" -b -P x.py' }));
+  assert.ok(isHeavy('Bash', { command: 'for n in a b; do ffmpeg -i $n.mp4 out.mp4; done' }));
+  assert.ok(isHeavy('Bash', { command: 'OMP_NUM_THREADS=2 ./.venv/Scripts/python train.py' }));
+  assert.ok(isHeavy('Bash', { command: 'npm run build --version' }));
+  assert.ok(!isHeavy('Bash', { command: 'which blender ffmpeg node' }));
+  assert.ok(!isHeavy('Bash', { command: 'grep -n ffmpeg src/x.py | head' }));
+  assert.ok(!isHeavy('PowerShell', { command: 'Get-Process blender,python' }));
+  assert.ok(!isHeavy('Bash', { command: 'powershell.exe -NoProfile -Command "Get-Process blender"' }));
   assert.ok(!isHeavy('Read', { file_path: 'blender.txt' }));
 });
 

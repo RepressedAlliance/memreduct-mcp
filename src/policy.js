@@ -24,15 +24,32 @@ export const defaults = () => ({
 
 const HEAVY_TOOLS = /^(Agent|Task|Workflow)$|^mcp__.*start_process$/;
 const SHELL_TOOLS = /^(Bash|PowerShell)$/;
-const HEAVY_COMMAND = /\b(blender|ffmpeg|melt|handbrake|comfyui|ollama|llama|whisper|torch|tensorflow|transformers|docker\s+(build|compose)|cargo\s+(build|test)|(npm|pnpm|yarn|bun)\s+(run\s+)?(build|test)|next\s+build|vite\s+build|webpack|tsc|gradle|mvn|msbuild|dotnet\s+(build|test)|cmake\s+--build|ninja|pytest|playwright)\b/i;
+const HEAVY_PROGRAMS = new Set(['blender', 'ffmpeg', 'melt', 'handbrakecli', 'ollama', 'llama-server', 'llama-cli', 'whisper', 'webpack', 'tsc', 'gradle', 'gradlew', 'mvn', 'mvnw', 'msbuild', 'ninja', 'pytest', 'playwright']);
+const HEAVY_INVOCATION = /^(dockers+(build|compose)|cargos+(build|test)|(npm|pnpm|yarn|bun)s+(runs+)?(build|test)|npxs+(tsc|webpack|playwright|vites+build|nexts+build)|nexts+build|vites+build|dotnets+(build|test)|cmakes+--build)/i;
+const HEAVY_PYTHON = /^pythonS*s.*(torch|tensorflow|transformers|whisper|comfyui|train)/i;
+const COMMAND_PREFIX = /^(?:w+=S*s+|timeouts+S+s+|nices+|times+|execs+|dos+|thens+|elses+|&s*)/;
 // Graphics and GPU memory errors are not helped by freeing system RAM.
 const MEMORY_ERROR = /out of memory|outofmemory|MemoryError|low virtual memory|bad_alloc|cannot allocate memory|insufficient memory|not enough memory|ENOMEM|0xC0000017|paging file is too small|heap out of memory/i;
 const NOT_SYSTEM_RAM = /CUDA|VRAM|GPU|OptiX|Cg C\d+|shader/i;
 
+// Looks at the program each part of a command runs, so "which blender" or a search for the
+// word "ffmpeg" doesn't count as a render.
+function isHeavySegment(raw) {
+  let segment = raw.trim();
+  while (COMMAND_PREFIX.test(segment)) segment = segment.replace(COMMAND_PREFIX, '');
+  const match = /^"([^"]+)"|^'([^']+)'|^(S+)/.exec(segment);
+  if (!match) return false;
+  const program = (match[1] ?? match[2] ?? match[3]).split(/[\/]/).pop().replace(/.(exe|cmd|bat)$/i, '').toLowerCase();
+  const normalized = `${program}${segment.slice(match[0].length)}`;
+  return HEAVY_PROGRAMS.has(program) || HEAVY_INVOCATION.test(normalized) || HEAVY_PYTHON.test(normalized);
+}
+
 export function isHeavy(toolName, toolInput = {}) {
   if (HEAVY_TOOLS.test(toolName)) return true;
   if (!SHELL_TOOLS.test(toolName)) return false;
-  return toolInput.run_in_background === true || HEAVY_COMMAND.test(String(toolInput.command ?? ''));
+  if (toolInput.run_in_background === true) return true;
+  return String(toolInput.command ?? '').split(/&&||||[;
+|]/).some(isHeavySegment);
 }
 
 export function isMemoryError(text) {
